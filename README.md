@@ -24,12 +24,15 @@ You can find more information about Circuit Breakers [here](https://martinfowler
 - Redis PHP extension enabled
 - Composer
 
+___
 
 ## Installation
 
 You can install **PHP Circuit Breaker** by composer running:
 ```# composer require gabrielanhaia/php-circuit-breaker```
 
+
+___
 
 ## How do I use it?
 
@@ -89,6 +92,8 @@ $circuitBreaker->failed($serviceName);
 With these three simple methods, you can control the flow of your application in execution time. 
 
 
+___
+
 ## Recap
 
 Let's say that you are using the following settings:
@@ -119,6 +124,8 @@ Each failure is stored on Redis and has an expiration date.
 If the first failure happened exaclty at 12:00:10 and the "time_window" is 30 seconds, so, after 12:00:40 this failure will not be counted in the total of failures considered to open the circuit.
 In short, to open the circuit, you must have X (total_failures) in an interval of Y (time_window) seconds.
 
+
+___
 
 ## Suggestions
 
