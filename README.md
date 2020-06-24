@@ -16,6 +16,7 @@ When we work with microservices, it is sometimes common to call these systems, a
 
 You can find more information about Circuit Breakers [here](https://martinfowler.com/bliki/CircuitBreaker.html).
 
+
 ## Requirements
 
 - PHP 7
@@ -23,12 +24,14 @@ You can find more information about Circuit Breakers [here](https://martinfowler
 - Redis PHP extension enabled
 - Composer
 
+
 ## Installation
 
 You can install **PHP Circuit Breaker** by composer running:
 ```# composer require gabrielanhaia/php-circuit-breaker```
 
-### How do I use it?
+
+## How do I use it?
 
 I strongly recommend that you use a service container (dependency injection container) to deal with the objects and their dependencies, so you will be able to use it efficiently (It will not be necessary to create instances everywhere).
 
@@ -85,6 +88,7 @@ $circuitBreaker->failed($serviceName);
 
 With these three simple methods, you can control the flow of your application in execution time. 
 
+
 ## Recap
 
 Let's say that you are using the following settings:
@@ -114,6 +118,7 @@ What is the setting "time_window" for?
 Each failure is stored on Redis and has an expiration date. 
 If the first failure happened exaclty at 12:00:10 and the "time_window" is 30 seconds, so, after 12:00:40 this failure will not be counted in the total of failures considered to open the circuit.
 In short, to open the circuit, you must have X (total_failures) in an interval of Y (time_window) seconds.
+
 
 ## Suggestions
 
