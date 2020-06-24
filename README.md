@@ -127,4 +127,4 @@ In short, to open the circuit, you must have X (total_failures) in an interval o
 
 ___
 
-Created by Gabriel Anhaia - [https://www.linkedin.com/in/gabrielanhaia](https://www.linkedin.com/in/gabrielanhaia)
+Created by: **Gabriel Anhaia** - [https://www.linkedin.com/in/gabrielanhaia](https://www.linkedin.com/in/gabrielanhaia)
