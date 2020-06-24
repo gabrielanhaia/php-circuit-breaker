@@ -1,4 +1,4 @@
-[![Build Status](https://travis-ci.com/gabrielanhaia/laravel-circuit-breaker.svg?branch=master)](https://travis-ci.com/gabrielanhaia/laravel-circuit-breaker)
+[![Build Status](https://travis-ci.com/gabrielanhaia/php-circuit-breaker.svg?branch=master)](https://travis-ci.com/gabrielanhaia/php-circuit-breaker)
 ![Code Coverage](https://img.shields.io/badge/coverage-100%25-green)
 ![Licence](https://img.shields.io/badge/licence-MIT-blue)
 ![Package Stars](https://img.shields.io/badge/stars-%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-yellow)
