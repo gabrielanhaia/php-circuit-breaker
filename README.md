@@ -38,7 +38,7 @@ I strongly recommend that you use a service container (dependency injection cont
 
 1. The first thing you can do is to define the *Settings*:
 
-```
+```php
 $settings = [
     'exceptions_on' => false, // Define if exceptions will be thrown when the circuit is open.
     'time_window' => 20, // Time window in which errors accumulate (Are being accounted for in total).
@@ -52,7 +52,7 @@ $settings = [
 
 2. Instantiating a driver (Only Redis driver is available at the moment) and Redis client:
 
-```
+```php
 $redis = new \Redis;
 $redis->connect('localhost');
 $redisCircuitBreakerDriver = new GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\RedisCircuitBreaker($redis);
@@ -61,14 +61,14 @@ $redisCircuitBreakerDriver = new GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\R
 
 3. Instantiating the **PHP Circuit Breaker** class:
 
-```
+```php
 $circuitBreaker = new GabrielAnhaia\PhpCircuitBreaker\CircuitBreaker($redisCircuitBreakerDriver, $settings)
 ```
 *Note: The second parameter is optional.*
 
 4. Validating if the circuit is open:
 
-```
+```php
 if ($circuitBreaker->canPass($serviceName) !== true) {
     return;
 }
@@ -78,12 +78,12 @@ You can use the function **canPass** in any way you want. It will always return 
 After that, you should call your service, and depending on the response, you can call the following methods to update the circuit control variables.
 
 If Success:
-```
+```php
 $circuitBreaker->succeed($serviceName);
 ```
 
 If failure:
-```
+```php
 $circuitBreaker->failed($serviceName);
 ```
 
@@ -96,7 +96,7 @@ ___
 
 Let's say that you are using the following settings:
 
-```
+```php
 $settings = [
     'exceptions_on' => false, // Define if exceptions will be thrown when the circuit is open.
     'time_window' => 20, // Time window in which errors accumulate (Are being accounted for in total).
