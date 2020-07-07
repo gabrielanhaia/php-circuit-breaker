@@ -14,7 +14,6 @@ When we work with microservices, it is sometimes common to call these systems, a
 
 You can find more information about Circuit Breakers [here](https://martinfowler.com/bliki/CircuitBreaker.html).
 
-
 ## Requirements
 
 - PHP 7
@@ -74,7 +73,7 @@ if ($circuitBreaker->canPass($serviceName) !== true) {
 }
 ```
 
-You can use the function **canPass** in any way you want. It will always return *true* when the Circuit is **OPEN** or **HALF_OPEN**.
+You can use the function **canPass** in any way you want. It will always return *true* when the Circuit is **CLOSED** or **HALF_OPEN**.
 After that, you should call your service, and depending on the response, you can call the following methods to update the circuit control variables.
 
 If Success:
