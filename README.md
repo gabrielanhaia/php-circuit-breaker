@@ -1,4 +1,6 @@
 ![CI](https://github.com/gabrielanhaia/php-circuit-breaker/actions/workflows/ci.yml/badge.svg)
+[![Packagist Version](https://img.shields.io/packagist/v/gabrielanhaia/php-circuit-breaker)](https://packagist.org/packages/gabrielanhaia/php-circuit-breaker)
+[![Packagist Downloads](https://img.shields.io/packagist/dm/gabrielanhaia/php-circuit-breaker)](https://packagist.org/packages/gabrielanhaia/php-circuit-breaker)
 ![Licence](https://img.shields.io/badge/licence-MIT-blue)
 
 # PHP Circuit Breaker
@@ -17,7 +19,7 @@ Learn more about circuit breakers: https://martinfowler.com/bliki/CircuitBreaker
 - 2.x (current): PHP 8.1+, native enums, PHPUnit 10, GitHub Actions
 - 1.x (legacy): PHP 7.4+/8.0+, uses `eloquent/enumeration` and Travis CI
 
-See CHANGELOG for details and migration notes.
+See CHANGELOG for details and migration notes. Latest Release: https://github.com/gabrielanhaia/php-circuit-breaker/releases/latest • Open PRs: https://github.com/gabrielanhaia/php-circuit-breaker/pulls
 
 ## Requirements
 - PHP 8.1+
@@ -109,4 +111,3 @@ MIT
 ---
 
 Created by: Gabriel Anhaia — https://www.linkedin.com/in/gabrielanhaia
-

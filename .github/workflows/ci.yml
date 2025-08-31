@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ master, v2-native-enums ]
+    branches: [ main, master, v2-native-enums ]
+    tags: [ 'v*' ]
   pull_request:
-    branches: [ master, v2-native-enums ]
+    branches: [ main, master ]
 
 jobs:
   test:
@@ -27,11 +28,10 @@ jobs:
           coverage: none
 
       - name: Validate composer.json
-        run: composer validate --no-interaction
+        run: composer validate --no-interaction --no-check-version
 
       - name: Install dependencies
         run: composer install --no-interaction --prefer-dist --no-progress
 
       - name: Run tests
         run: vendor/bin/phpunit --configuration phpunit.xml
-
