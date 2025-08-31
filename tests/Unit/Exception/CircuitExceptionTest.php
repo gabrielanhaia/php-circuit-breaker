@@ -18,7 +18,7 @@ class CircuitExceptionTest extends TestCase
     /**
      * Test if the exception holds the service-name.
      */
-    public function testExceptionWithServiceName()
+    public function testExceptionWithServiceName(): void
     {
         $serviceName = 'TEST_SERVICE_NAME';
         $exception = new CircuitException($serviceName);

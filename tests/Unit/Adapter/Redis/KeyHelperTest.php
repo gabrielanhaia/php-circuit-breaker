@@ -30,7 +30,7 @@ class KeyHelperTest extends TestCase
     /**
      * Test helper generating the for total of failures (store).
      */
-    public function testGeneratingKeyTotalFailuresToStore()
+    public function testGeneratingKeyTotalFailuresToStore(): void
     {
         $serviceName = 'SERVICE_NAME';
 
@@ -46,7 +46,7 @@ class KeyHelperTest extends TestCase
     /**
      * Test helper generating the for total of failures (search).
      */
-    public function testGeneratingKeyTotalFailuresToSearch()
+    public function testGeneratingKeyTotalFailuresToSearch(): void
     {
         $serviceName = 'SERVICE_NAME';
 
@@ -60,7 +60,7 @@ class KeyHelperTest extends TestCase
     /**
      * Test helper generating the for open circuits.
      */
-    public function testGeneratingKeyCircuitOpen()
+    public function testGeneratingKeyCircuitOpen(): void
     {
         $serviceName = 'SERVICE_NAME';
 
@@ -74,7 +74,7 @@ class KeyHelperTest extends TestCase
     /**
      * Test helper generating the for closed circuits.
      */
-    public function testGeneratingKeyCircuitClosed()
+    public function testGeneratingKeyCircuitClosed(): void
     {
         $serviceName = 'SERVICE_NAME';
 
@@ -88,7 +88,7 @@ class KeyHelperTest extends TestCase
     /**
      * Test helper generating the for half-open circuits.
      */
-    public function testGeneratingKeyCircuitHalfOpen()
+    public function testGeneratingKeyCircuitHalfOpen(): void
     {
         $serviceName = 'SERVICE_NAME';
 

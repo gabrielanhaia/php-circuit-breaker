@@ -20,7 +20,7 @@ class RedisCircuitBreakerTest extends TestCase
     /**
      * Test success incrementing a new failure to the counter for a micro-service.
      */
-    public function testSuccessAddingNewFailureToAService()
+    public function testSuccessAddingNewFailureToAService(): void
     {
         $timeWindow = 40;
         $serviceName = 'SERVICE_NAME';
@@ -46,7 +46,7 @@ class RedisCircuitBreakerTest extends TestCase
     /**
      * Test error incrementing a new failure to the counter for a micro-service.
      */
-    public function testRedisErrorAddingNewFailureToAService()
+    public function testRedisErrorAddingNewFailureToAService(): void
     {
         $timeWindow = 40;
         $serviceName = 'SERVICE_NAME';
@@ -82,7 +82,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testSuccessOpeningCircuit()
+    public function testSuccessOpeningCircuit(): void
     {
         $timeOpen = 40;
         $serviceName = 'SERVICE_NAME';
@@ -110,7 +110,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testRedisErrorOpeningCircuit()
+    public function testRedisErrorOpeningCircuit(): void
     {
         $timeOpen = 40;
         $serviceName = 'SERVICE_NAME';
@@ -146,7 +146,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testSuccessHalfOpenCircuit()
+    public function testSuccessHalfOpenCircuit(): void
     {
         $timeOpen = 40;
         $serviceName = 'SERVICE_NAME';
@@ -174,7 +174,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testRedisErrorHalfOpenCircuit()
+    public function testRedisErrorHalfOpenCircuit(): void
     {
         $timeOpen = 40;
         $serviceName = 'SERVICE_NAME';
@@ -210,7 +210,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testSuccessClosingCircuit()
+    public function testSuccessClosingCircuit(): void
     {
         $serviceName = 'SERVICE_NAME';
         $keyOpen = 'KEY_OPEN';
@@ -261,7 +261,7 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @throws AdapterException
      */
-    public function testRedisErrorClosingCircuit()
+    public function testRedisErrorClosingCircuit(): void
     {
         $redisErrorMessage = 'UNEXPECTED_ERROR_MESSAGE';
 
@@ -316,7 +316,7 @@ class RedisCircuitBreakerTest extends TestCase
     /**
      * Test method responsible for getting the total of failures for a service.
      */
-    public function testGetTotalFailures()
+    public function testGetTotalFailures(): void
     {
         $serviceName = 'SERVICE_NAME';
         $keyTotalFailures = 'circuit_breaker:service:total_failures:*';
@@ -358,7 +358,7 @@ class RedisCircuitBreakerTest extends TestCase
         CircuitStateEnum $expectedCircuitState,
         bool $isOpen,
         bool $isHalfOpen
-    )
+    ): void
     {
         $serviceName = 'SERVICE_NAME';
         $keyOpen = 'KEY_OPEN';

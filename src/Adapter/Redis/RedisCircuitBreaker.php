@@ -28,7 +28,7 @@ class RedisCircuitBreaker extends CircuitBreakerAdapter
      * @param \Redis $redis
      * @param KeyHelper|null $keyHelper
      */
-    public function __construct(\Redis $redis, KeyHelper $keyHelper = null)
+    public function __construct(\Redis $redis, ?KeyHelper $keyHelper = null)
     {
         $this->redis = $redis;
         $this->keyHelper = $keyHelper ? $keyHelper : new KeyHelper;

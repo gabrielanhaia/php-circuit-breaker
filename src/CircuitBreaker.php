@@ -34,7 +34,7 @@ class CircuitBreaker
     public function __construct(
         CircuitBreakerAdapter $circuitBreaker,
         array $settings = [],
-        Alert $alert = null
+        ?Alert $alert = null
     )
     {
         $this->circuitBreaker = $circuitBreaker;

@@ -28,7 +28,7 @@ class CircuitException extends \Exception
         string $serviceName,
         $message = "",
         $code = 0,
-        Throwable $previous = null
+        ?Throwable $previous = null
     )
     {
         parent::__construct($message, $code, $previous);
