@@ -2,7 +2,7 @@
 
 namespace GabrielAnhaia\PhpCircuitBreaker\Contract;
 
-use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum;
 
 /**
  * Class CircuitBreakerAdapter
@@ -20,7 +20,7 @@ abstract class CircuitBreakerAdapter
      *
      * @return CircuitState
      */
-    public abstract function getState(string $serviceName): CircuitState;
+    public abstract function getState(string $serviceName): CircuitStateEnum;
 
     /**
      * Increment a failure in the total of failures for a service.

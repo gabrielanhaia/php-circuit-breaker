@@ -1,127 +1,113 @@
-[![Build Status](https://travis-ci.com/gabrielanhaia/php-circuit-breaker.svg?branch=master)](https://travis-ci.com/gabrielanhaia/php-circuit-breaker)
-![Code Coverage](https://img.shields.io/badge/coverage-100%25-green)
+![CI](https://github.com/gabrielanhaia/php-circuit-breaker/actions/workflows/ci.yml/badge.svg)
+![Packagist Version](https://img.shields.io/packagist/v/gabrielanhaia/php-circuit-breaker)
+![Packagist Downloads](https://img.shields.io/packagist/dm/gabrielanhaia/php-circuit-breaker)
 ![Licence](https://img.shields.io/badge/licence-MIT-blue)
-![Package Stars](https://img.shields.io/badge/stars-%E2%98%85%E2%98%85%E2%98%85%E2%98%85%E2%98%85-yellow)
 
 # PHP Circuit Breaker
 
-## Description
+Resiliency pattern for PHP microservices. This library implements a circuit breaker using Redis for state tracking. It protects your services from cascading failures by stopping calls to unhealthy dependencies and gradually allowing traffic as they recover.
 
-PHP Circuit Breaker was developed based on the book "Release It!: Design and Deploy Production-Ready Software (Pragmatic Programmers)", written by Michael T. Nygard.
-In this book, Michael popularized the Circuit Breaker.
+Learn more about circuit breakers: https://martinfowler.com/bliki/CircuitBreaker.html
 
-When we work with microservices, it is sometimes common to call these systems, and they are not available, which ends up causing problems in our application. To prevent any problem on our side, and guarantee that a service will not be called loads of times, we should use a Circuit Breaker.
+## Features
+- Simple API: `canPass`, `succeed`, `failed`
+- Redis-backed state with configurable windows/timeouts
+- Pluggable alert hook to notify when circuits open
+- PHP 8.1+ native enum for states in v2
 
-You can find more information about Circuit Breakers [here](https://martinfowler.com/bliki/CircuitBreaker.html).
+## Versions
+- 2.x (current): PHP 8.1+, native enums, PHPUnit 10, GitHub Actions
+- 1.x (legacy): PHP 7.4+/8.0+, uses `eloquent/enumeration` and Travis CI
+
+See CHANGELOG for details and migration notes. Releases: https://github.com/gabrielanhaia/php-circuit-breaker/releases
 
 ## Requirements
+- PHP 8.1+
+- Redis server
+- `ext-redis` PHP extension
 
-- PHP 7
-- Redis
-- Redis PHP extension enabled
-- Composer
+## Install
+- v2 (recommended): `composer require gabrielanhaia/php-circuit-breaker:^2.0`
+- v1 (legacy): `composer require gabrielanhaia/php-circuit-breaker:^1.0`
 
-___
-
-## Installation
-
-You can install **PHP Circuit Breaker** by composer running:
-```# composer require gabrielanhaia/php-circuit-breaker```
-
-
-___
-
-## How do I use it?
-
-I strongly recommend that you use a service container (dependency injection container) to deal with the objects and their dependencies, so you will be able to use it efficiently (It will not be necessary to create instances everywhere).
-
-1. The first thing you can do is to define the *Settings*:
-
+## Quick Start
 ```php
+use GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\RedisCircuitBreaker;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitBreaker;
+
 $settings = [
-    'exceptions_on' => false, // Define if exceptions will be thrown when the circuit is open.
-    'time_window' => 20, // Time window in which errors accumulate (Are being accounted for in total).
-    'time_out_open' => 30, // Time window that the circuit will be opened (If opened).
-    'time_out_half_open' => 20, // Time out that the circuit will be half-open.
-    'total_failures' => 5 // Number of failures necessary to open the circuit.
+    'exceptions_on' => false,
+    'time_window' => 20,
+    'time_out_open' => 30,
+    'time_out_half_open' => 20,
+    'total_failures' => 5,
 ];
-```
 
-*Note: It is not necessary to define these settings (they are the default values), they will be defined automatically.*
+$redis = new \Redis();
+$redis->connect('127.0.0.1', 6379);
 
-2. Instantiating a driver (Only Redis driver is available at the moment) and Redis client:
+$driver = new RedisCircuitBreaker($redis);
+$cb = new CircuitBreaker($driver, $settings);
 
-```php
-$redis = new \Redis;
-$redis->connect('localhost');
-$redisCircuitBreakerDriver = new GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\RedisCircuitBreaker($redis);
-
-```
-
-3. Instantiating the **PHP Circuit Breaker** class:
-
-```php
-$circuitBreaker = new GabrielAnhaia\PhpCircuitBreaker\CircuitBreaker($redisCircuitBreakerDriver, $settings)
-```
-*Note: The second parameter is optional.*
-
-4. Validating if the circuit is open:
-
-```php
-if ($circuitBreaker->canPass($serviceName) !== true) {
+$service = 'PAYMENTS_API';
+if (!$cb->canPass($service)) {
+    // Short-circuit
     return;
+}
+
+try {
+    // Call dependency...
+    $cb->succeed($service);
+} catch (\Throwable $e) {
+    $cb->failed($service);
 }
 ```
 
-You can use the function **canPass** in any way you want. It will always return *true* when the Circuit is **CLOSED** or **HALF_OPEN**.
-After that, you should call your service, and depending on the response, you can call the following methods to update the circuit control variables.
+## Configuration
+- `exceptions_on` (bool): throw when circuit is open (default: false)
+- `time_window` (int): seconds to track failures (default: 20)
+- `time_out_open` (int): seconds to keep circuit open (default: 30)
+- `time_out_half_open` (int): additional seconds before half-open closes (default: 20)
+- `total_failures` (int): failures within window to open (default: 5)
 
-If Success:
-```php
-$circuitBreaker->succeed($serviceName);
-```
+## Circuit State
+In v2+, states are represented with a native enum: `GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum` with cases `OPEN`, `CLOSED`, `HALF_OPEN`.
+You don’t normally need to consume this directly unless you’re writing custom adapters.
 
-If failure:
-```php
-$circuitBreaker->failed($serviceName);
-```
-
-With these three simple methods, you can control the flow of your application in execution time. 
-
-
-___
-
-## Recap
-
-Let's say that you are using the following settings:
+## Alerts
+Implement `GabrielAnhaia\PhpCircuitBreaker\Contract\Alert` and pass it to `CircuitBreaker` to receive callbacks when a circuit opens.
 
 ```php
-$settings = [
-    'exceptions_on' => false, // Define if exceptions will be thrown when the circuit is open.
-    'time_window' => 20, // Time window in which errors accumulate (Are being accounted for in total).
-    'time_out_open' => 30, // Time window that the circuit will be opened (If opened).
-    'time_out_half_open' => 60, // Time out that the circuit will be half-open.
-    'total_failures' => 5 // Number of failures necessary to open the circuit.
-];
+use GabrielAnhaia\PhpCircuitBreaker\Contract\Alert;
+
+class LoggerAlert implements Alert {
+    public function emmitOpenCircuit(string $serviceName)
+    {
+        error_log("Circuit opened: {$serviceName}");
+    }
+}
 ```
 
-One of your services is a Payment Gateway, and you try to call it in an interval of each 2 seconds for some reason.
-The first time you call the Gateway, it responds with a 200 (HTTP status code), and after you call the method "succeed" with a service identifier (You can create one for each service).
+## Redis Keys
+Keys are namespaced per service:
+- `circuit_breaker:{SERVICE}:open`
+- `circuit_breaker:{SERVICE}:half_open`
+- `circuit_breaker:{SERVICE}:total_failures:*`
 
-On the second, third, fourth, fifth, and sixth call, the Gateway is unavailable, so you call the method "failed" again.
+## Migration (1.x → 2.x)
+Breaking changes:
+- Replace `CircuitState::OPEN()` style calls with native enum values if referenced in your code, e.g. `CircuitStateEnum::OPEN`.
+- `CircuitBreakerAdapter::getState(string): CircuitStateEnum` now returns the native enum.
 
-The total of failers was 5, now the next time you call the method "canPass" it will return "false" and the service will not be called again.
-At this moment the circuit is open, it will stay "OPEN" for 30 seconds (time_out_open), and then it will change the state to "HALF_OPEN" at this moment you can try to call the service again, and if it fails it will be "OPEN" for more 30 seconds.
+Otherwise, `CircuitBreaker` public API is unchanged.
 
-What happens if the first four attempts fail and the fifth is succeeded?
-Then, the counter will be reset.
+## Development
+- Run tests: `vendor/bin/phpunit --configuration phpunit.xml`
+- GitHub Actions runs on PHP 8.1–8.4
 
-What is the setting "time_window" for?
-Each failure is stored on Redis and has an expiration date. 
-If the first failure happened exaclty at 12:00:10 and the "time_window" is 30 seconds, so, after 12:00:40 this failure will not be counted in the total of failures considered to open the circuit.
-In short, to open the circuit, you must have X (total_failures) in an interval of Y (time_window) seconds.
+## License
+MIT
 
+---
 
-___
-
-Created by: **Gabriel Anhaia** - [https://www.linkedin.com/in/gabrielanhaia](https://www.linkedin.com/in/gabrielanhaia)
+Created by: Gabriel Anhaia — https://www.linkedin.com/in/gabrielanhaia

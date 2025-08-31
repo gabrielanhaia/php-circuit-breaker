@@ -3,7 +3,7 @@
 namespace Tests\Unit;
 
 use GabrielAnhaia\PhpCircuitBreaker\CircuitBreaker;
-use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum;
 use GabrielAnhaia\PhpCircuitBreaker\Contract\Alert;
 use GabrielAnhaia\PhpCircuitBreaker\Contract\CircuitBreakerAdapter;
 use GabrielAnhaia\PhpCircuitBreaker\Exception\CircuitException;
@@ -21,7 +21,7 @@ class CircuitBreakerTest extends \Tests\TestCase
     /**
      * Test success calling a service.
      */
-    public function testWhenCallToAServiceWasSucceed()
+    public function testWhenCallToAServiceWasSucceed(): void
     {
         $serviceName = 'SERVICE';
 
@@ -32,14 +32,15 @@ class CircuitBreakerTest extends \Tests\TestCase
             ->andReturnTrue();
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerDriverMock);
-        $this->assertNull($circuitBreaker->succeed($serviceName));
+        $circuitBreaker->succeed($serviceName);
+        $this->assertTrue(true);
     }
 
     /**
      * Test if the service can be callend (half-open, closed) or can't (open).
      * (without exceptions.)
      *
-     * @param CircuitState $currentState
+     * @param CircuitStateEnum $currentState
      * @param bool $canPass
      *
      * @dataProvider dataProviderTestCanPassTrue
@@ -47,7 +48,7 @@ class CircuitBreakerTest extends \Tests\TestCase
      * @return void
      * @throws \Exception
      */
-    public function testCanPassWithoutExceptions(CircuitState $currentState, bool $canPass)
+    public function testCanPassWithoutExceptions(CircuitStateEnum $currentState, bool $canPass): void
     {
         $serviceName = 'SERVICE_NAME_TEST';
 
@@ -70,15 +71,15 @@ class CircuitBreakerTest extends \Tests\TestCase
     {
         return [
             [
-                'state' => CircuitState::CLOSED(),
+                'state' => CircuitStateEnum::CLOSED,
                 'canPass' => true
             ],
             [
-                'state' => CircuitState::HALF_OPEN(),
+                'state' => CircuitStateEnum::HALF_OPEN,
                 'canPass' => true
             ],
             [
-                'state' => CircuitState::OPEN(),
+                'state' => CircuitStateEnum::OPEN,
                 'canPass' => false
             ]
         ];
@@ -93,7 +94,7 @@ class CircuitBreakerTest extends \Tests\TestCase
      * @return void
      * @throws \Exception
      */
-    public function testCantPassWithExceptions()
+    public function testCantPassWithExceptions(): void
     {
         $this->expectException(CircuitException::class);
         $this->expectExceptionMessage('The circuit is open.');
@@ -103,7 +104,7 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldReceive('getState')
             ->once()
             ->with($serviceName)
-            ->andReturn(CircuitState::OPEN());
+            ->andReturn(CircuitStateEnum::OPEN);
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['exceptions_on' => true]);
         $circuitBreaker->canPass($serviceName);
@@ -113,7 +114,7 @@ class CircuitBreakerTest extends \Tests\TestCase
      * Test when incrementing the total of failures AND the circuit is not half-open
      *      AND the total of failures is less than the limit.
      */
-    public function testServiceFailureWhenTheCircuitIsNotHalfOpenAndTotalFailuresIsLessThanTheLimit()
+    public function testServiceFailureWhenTheCircuitIsNotHalfOpenAndTotalFailuresIsLessThanTheLimit(): void
     {
         $serviceName = 'SERVICE_NAME_TEST';
         $timeWindow = 123;
@@ -127,7 +128,7 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldReceive('getState')
             ->once()
             ->with($serviceName)
-            ->andReturn(CircuitState::OPEN());
+            ->andReturn(CircuitStateEnum::OPEN);
 
         $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
             ->once()
@@ -137,13 +138,14 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldNotReceive('openCircuit');
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $this->assertNull($circuitBreaker->failed($serviceName));
+        $circuitBreaker->failed($serviceName);
+        $this->assertTrue(true);
     }
 
     /**
      * Test when incrementing the total of failures AND the circuit is Half-open.
      */
-    public function testServiceFailureWhenTheCircuitIsHalfOpen()
+    public function testServiceFailureWhenTheCircuitIsHalfOpen(): void
     {
         $serviceName = 'SERVICE_NAME_TEST';
         $timeWindow = 123;
@@ -156,7 +158,7 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldReceive('getState')
             ->once()
             ->with($serviceName)
-            ->andReturn(CircuitState::HALF_OPEN());
+            ->andReturn(CircuitStateEnum::HALF_OPEN);
 
         $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
             ->once()
@@ -175,14 +177,15 @@ class CircuitBreakerTest extends \Tests\TestCase
             ->with($serviceName, $defaultSettingTimeOutOpen + $defaultSettingTimeOutHalfOpen);
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $this->assertNull($circuitBreaker->failed($serviceName));
+        $circuitBreaker->failed($serviceName);
+        $this->assertTrue(true);
     }
 
     /**
      * Test when increasing the total of failures for a service AND the circuit is closed, however
      * the total of failures reaches its limit.
      */
-    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimit()
+    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimit(): void
     {
         $serviceName = 'SERVICE_NAME_TEST';
         $timeWindow = 123;
@@ -195,7 +198,7 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldReceive('getState')
             ->once()
             ->with($serviceName)
-            ->andReturn(CircuitState::CLOSED());
+            ->andReturn(CircuitStateEnum::CLOSED);
 
         $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
             ->once()
@@ -214,14 +217,15 @@ class CircuitBreakerTest extends \Tests\TestCase
             ->with($serviceName, $defaultSettingTimeOutOpen + $defaultSettingTimeOutHalfOpen);
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $this->assertNull($circuitBreaker->failed($serviceName));
+        $circuitBreaker->failed($serviceName);
+        $this->assertTrue(true);
     }
 
     /**
      * Test when increasing the total of failures for a service AND the circuit is closed, however
      * the total of failures reaches its limit and there is an {@see Alert} object to emmit a message.
      */
-    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimitAndEmmitAMessage()
+    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimitAndEmmitAMessage(): void
     {
         $serviceName = 'SERVICE_NAME_TEST';
         $timeWindow = 123;
@@ -234,7 +238,7 @@ class CircuitBreakerTest extends \Tests\TestCase
         $circuitBreakerAdapterMock->shouldReceive('getState')
             ->once()
             ->with($serviceName)
-            ->andReturn(CircuitState::CLOSED());
+            ->andReturn(CircuitStateEnum::CLOSED);
 
         $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
             ->once()
@@ -258,6 +262,7 @@ class CircuitBreakerTest extends \Tests\TestCase
             ->with($serviceName);
 
         $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow], $alertWrapper);
-        $this->assertNull($circuitBreaker->failed($serviceName));
+        $circuitBreaker->failed($serviceName);
+        $this->assertTrue(true);
     }
 }
