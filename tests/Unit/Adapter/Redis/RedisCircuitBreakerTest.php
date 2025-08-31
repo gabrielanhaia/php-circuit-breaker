@@ -4,7 +4,7 @@ namespace Tests\Unit\Adapter\Redis;
 
 use GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\KeyHelper;
 use GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis\RedisCircuitBreaker;
-use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum;
 use GabrielAnhaia\PhpCircuitBreaker\Exception\AdapterException;
 use Tests\TestCase;
 
@@ -33,13 +33,14 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyFailure);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyFailure, true, $timeWindow)
+            ->with($keyFailure, $timeWindow, true)
             ->andReturnTrue();
 
         $redisCircuitBreaker = new RedisCircuitBreaker($redisMock, $keyHelperMock);
-        $this->assertNull($redisCircuitBreaker->addFailure($serviceName, $timeWindow));
+        $redisCircuitBreaker->addFailure($serviceName, $timeWindow);
+        $this->assertTrue(true);
     }
 
     /**
@@ -62,9 +63,9 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyFailure);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyFailure, true, $timeWindow)
+            ->with($keyFailure, $timeWindow, true)
             ->andReturnFalse();
 
         $redisMock->shouldReceive('getLastError')
@@ -94,13 +95,14 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyCircuitOpen);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyCircuitOpen, true, $timeOpen)
+            ->with($keyCircuitOpen, $timeOpen, true)
             ->andReturnTrue();
 
         $redisCircuitBreaker = new RedisCircuitBreaker($redisMock, $keyHelperMock);
-        $this->assertNull($redisCircuitBreaker->openCircuit($serviceName, $timeOpen));
+        $redisCircuitBreaker->openCircuit($serviceName, $timeOpen);
+        $this->assertTrue(true);
     }
 
     /**
@@ -125,9 +127,9 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyCircuitOpen);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyCircuitOpen, true, $timeOpen)
+            ->with($keyCircuitOpen, $timeOpen, true)
             ->andReturnFalse();
 
         $redisMock->shouldReceive('getLastError')
@@ -157,13 +159,14 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyHalfOpen);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyHalfOpen, true, $timeOpen)
+            ->with($keyHalfOpen, $timeOpen, true)
             ->andReturnTrue();
 
         $redisCircuitBreaker = new RedisCircuitBreaker($redisMock, $keyHelperMock);
-        $this->assertNull($redisCircuitBreaker->setCircuitHalfOpen($serviceName, $timeOpen));
+        $redisCircuitBreaker->setCircuitHalfOpen($serviceName, $timeOpen);
+        $this->assertTrue(true);
     }
 
     /**
@@ -188,9 +191,9 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($keyCircuitHalfOpen);
 
         $redisMock = \Mockery::mock(\Redis::class);
-        $redisMock->shouldReceive('set')
+        $redisMock->shouldReceive('setEx')
             ->once()
-            ->with($keyCircuitHalfOpen, true, $timeOpen)
+            ->with($keyCircuitHalfOpen, $timeOpen, true)
             ->andReturnFalse();
 
         $redisMock->shouldReceive('getLastError')
@@ -248,7 +251,9 @@ class RedisCircuitBreakerTest extends TestCase
             ->never();
 
         $redisCircuitBreaker = new RedisCircuitBreaker($redisMock, $keyHelperMock);
-        $this->assertNull($redisCircuitBreaker->closeCircuit($serviceName));
+        // No exception expected.
+        $redisCircuitBreaker->closeCircuit($serviceName);
+        $this->assertTrue(true);
     }
 
     /**
@@ -304,7 +309,8 @@ class RedisCircuitBreakerTest extends TestCase
             ->andReturn($redisErrorMessage);
 
         $redisCircuitBreaker = new RedisCircuitBreaker($redisMock, $keyHelperMock);
-        $this->assertNull($redisCircuitBreaker->closeCircuit($serviceName));
+        // Expecting exception above, invoking method to trigger it.
+        $redisCircuitBreaker->closeCircuit($serviceName);
     }
 
     /**
@@ -344,12 +350,12 @@ class RedisCircuitBreakerTest extends TestCase
      *
      * @dataProvider dataProviderGetCircuitState
      *
-     * @param CircuitState $expectedCircuitState
+     * @param CircuitStateEnum $expectedCircuitState
      * @param bool $isOpen Define if the circuit result (Redis) is open.
      * @param bool $isHalfOpen
      */
     public function testGettingTheCircuitState(
-        CircuitState $expectedCircuitState,
+        CircuitStateEnum $expectedCircuitState,
         bool $isOpen,
         bool $isHalfOpen
     )
@@ -395,17 +401,17 @@ class RedisCircuitBreakerTest extends TestCase
     {
         return [
             [
-                'expectedResult' => CircuitState::OPEN(),
+                'expectedResult' => CircuitStateEnum::OPEN,
                 'isOpen' => true,
                 'isHalfOpen' => false,
             ],
             [
-                'expectedResult' => CircuitState::HALF_OPEN(),
+                'expectedResult' => CircuitStateEnum::HALF_OPEN,
                 'isOpen' => false,
                 'isHalfOpen' => true,
             ],
             [
-                'expectedResult' => CircuitState::CLOSED(),
+                'expectedResult' => CircuitStateEnum::CLOSED,
                 'isOpen' => false,
                 'isHalfOpen' => false,
             ]

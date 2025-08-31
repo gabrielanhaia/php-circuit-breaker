@@ -1,17 +1,22 @@
 language: php
+
 php:
-  - 7.3
+  - 8.1
+  - 8.2
+  - 8.3
+  - 8.4
 
 cache:
-  apt: true
   directories:
     - $HOME/.composer/cache
 
 before_install:
-  - phpenv config-rm xdebug.ini
+  - phpenv config-rm xdebug.ini || true
 
 before_script:
-  - echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini
+  - echo "extension = redis.so" >> ~/.phpenv/versions/$(phpenv version-name)/etc/php.ini || true
   - composer self-update
-  - composer install --prefer-source --no-interaction --dev
-  - php vendor/bin/phpunit --coverage-text
+  - composer install --no-interaction --prefer-dist
+
+script:
+  - vendor/bin/phpunit --configuration phpunit.xml

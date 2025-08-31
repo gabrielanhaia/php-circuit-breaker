@@ -2,8 +2,6 @@
 
 
 namespace GabrielAnhaia\PhpCircuitBreaker\Exception;
-
-use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
 use Throwable;
 
 /**

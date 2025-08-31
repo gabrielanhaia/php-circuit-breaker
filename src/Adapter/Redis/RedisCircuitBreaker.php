@@ -3,7 +3,7 @@
 
 namespace GabrielAnhaia\PhpCircuitBreaker\Adapter\Redis;
 
-use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum;
 use GabrielAnhaia\PhpCircuitBreaker\Contract\CircuitBreakerAdapter;
 use GabrielAnhaia\PhpCircuitBreaker\Exception\AdapterException;
 
@@ -39,19 +39,19 @@ class RedisCircuitBreaker extends CircuitBreakerAdapter
      *
      * @param string $serviceName Name of the service for the circuit.
      *
-     * @return CircuitState
+     * @return CircuitStateEnum
      */
-    public function getState(string $serviceName): CircuitState
+    public function getState(string $serviceName): CircuitStateEnum
     {
-        $circuitState = CircuitState::CLOSED();
+        $circuitState = CircuitStateEnum::CLOSED;
 
         $halfOpenCircuitKey = $this->keyHelper->generateKeyHalfOpen($serviceName);
         $openCircuitKey = $this->keyHelper->generateKeyOpen($serviceName);
 
         if (!empty($this->redis->get($openCircuitKey))) {
-            $circuitState = CircuitState::OPEN();
+            $circuitState = CircuitStateEnum::OPEN;
         } else if (!empty($this->redis->get($halfOpenCircuitKey))) {
-            $circuitState = CircuitState::HALF_OPEN();
+            $circuitState = CircuitStateEnum::HALF_OPEN;
         }
 
         return $circuitState;
@@ -69,7 +69,8 @@ class RedisCircuitBreaker extends CircuitBreakerAdapter
     {
         $keyTotalFailures = $this->keyHelper->generateKeyTotalFailuresToStore($serviceName);
 
-        $dataInserted = $this->redis->set($keyTotalFailures, true, $timeWindow);
+        // Use setEx for forward compatibility with newer phpredis versions.
+        $dataInserted = $this->redis->setEx($keyTotalFailures, $timeWindow, true);
 
         if ($dataInserted === false) {
             throw new AdapterException($this->redis->getLastError());
@@ -104,7 +105,8 @@ class RedisCircuitBreaker extends CircuitBreakerAdapter
     {
         $key = $this->keyHelper->generateKeyOpen($serviceName);
 
-        $dataInserted = $this->redis->set($key, true, $timeOpen);
+        // Use setEx for forward compatibility with newer phpredis versions.
+        $dataInserted = $this->redis->setEx($key, $timeOpen, true);
 
         if ($dataInserted === false) {
             throw new AdapterException($this->redis->getLastError());
@@ -148,7 +150,8 @@ class RedisCircuitBreaker extends CircuitBreakerAdapter
     {
         $key = $this->keyHelper->generateKeyHalfOpen($serviceName);;
 
-        $dataInserted = $this->redis->set($key, true, $timeOpen);
+        // Use setEx for forward compatibility with newer phpredis versions.
+        $dataInserted = $this->redis->setEx($key, $timeOpen, true);
 
         if ($dataInserted === false) {
             throw new AdapterException($this->redis->getLastError());

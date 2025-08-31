@@ -64,7 +64,7 @@ class CircuitBreaker
     {
         $circuitState = $this->circuitBreaker->getState($serviceName);
 
-        if ($circuitState === CircuitState::OPEN()) {
+        if ($circuitState === CircuitStateEnum::OPEN) {
             if ($this->settings['exceptions_on'] === true) {
                 throw new CircuitException($serviceName, 'The circuit is open.');
             }
@@ -87,7 +87,7 @@ class CircuitBreaker
         $totalFailures = $this->circuitBreaker->getTotalFailures($serviceName);
         $circuitState = $this->circuitBreaker->getState($serviceName);
 
-        if ($circuitState === CircuitState::HALF_OPEN()
+        if ($circuitState === CircuitStateEnum::HALF_OPEN
             || $totalFailures >= $this->settings['total_failures']
         ) {
             $timeOutOpen = $this->settings['time_out_open'];

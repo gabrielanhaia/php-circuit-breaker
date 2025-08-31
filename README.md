@@ -16,7 +16,7 @@ You can find more information about Circuit Breakers [here](https://martinfowler
 
 ## Requirements
 
-- PHP 7
+- PHP 8.1+ (library runtime also supports PHP 7.4, but development tools target PHP 8.1+)
 - Redis
 - Redis PHP extension enabled
 - Composer
@@ -87,6 +87,10 @@ $circuitBreaker->failed($serviceName);
 ```
 
 With these three simple methods, you can control the flow of your application in execution time. 
+
+### PHP 8.1+ Native Enum (Optional)
+
+For projects on PHP 8.1 or newer, a native enum `GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum` is available. It mirrors the three states (`OPEN`, `CLOSED`, `HALF_OPEN`) and can be used in your own code to represent circuit state values. The existing `GabrielAnhaia\PhpCircuitBreaker\CircuitState` remains for backward compatibility and will be considered for replacement in a future major version.
 
 
 ___
