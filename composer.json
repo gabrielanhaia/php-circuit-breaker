@@ -1,15 +1,26 @@
 {
-  "name": "gabrielanhaia/php-circuit-breaker",
-  "description": "Circuit breaker for microservices developed in PHP.",
-  "type": "library",
-  "version": "2.0.0",
+    "name": "gabrielanhaia/php-circuit-breaker",
+    "description": "Circuit breaker pattern for PHP with multiple storage adapters, event system, and manual override.",
+    "type": "library",
     "require": {
-        "php": "^8.1",
-        "ext-redis": "*"
+        "php": ">=8.1"
     },
     "require-dev": {
+        "friendsofphp/php-cs-fixer": "^3.40",
+        "mockery/mockery": "^1.5",
+        "phpstan/phpstan": "^1.10",
         "phpunit/phpunit": "^10.5",
-        "mockery/mockery": "^1.5"
+        "psr/cache": "^3.0",
+        "psr/event-dispatcher": "^1.0",
+        "psr/simple-cache": "^3.0"
+    },
+    "suggest": {
+        "ext-apcu": "Required for ApcuStorage adapter",
+        "ext-memcached": "Required for MemcachedStorage adapter",
+        "ext-redis": "Required for RedisStorage adapter",
+        "psr/cache": "Required for Psr6CacheStorage adapter (^3.0)",
+        "psr/event-dispatcher": "Required for Psr14EventDispatcherBridge (^1.0)",
+        "psr/simple-cache": "Required for Psr16CacheStorage adapter (^3.0)"
     },
     "license": "MIT",
     "authors": [
@@ -25,7 +36,16 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "Tests\\": "tests/"
+            "GabrielAnhaia\\PhpCircuitBreaker\\Tests\\": "tests/"
         }
+    },
+    "scripts": {
+        "test": "phpunit",
+        "phpstan": "phpstan analyse",
+        "cs-check": "php-cs-fixer fix --dry-run --diff",
+        "cs-fix": "php-cs-fixer fix"
+    },
+    "config": {
+        "sort-packages": true
     }
 }
