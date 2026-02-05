@@ -1,268 +1,244 @@
 <?php
 
-namespace Tests\Unit;
+declare(strict_types=1);
+
+namespace GabrielAnhaia\PhpCircuitBreaker\Tests\Unit;
 
 use GabrielAnhaia\PhpCircuitBreaker\CircuitBreaker;
-use GabrielAnhaia\PhpCircuitBreaker\CircuitStateEnum;
-use GabrielAnhaia\PhpCircuitBreaker\Contract\Alert;
-use GabrielAnhaia\PhpCircuitBreaker\Contract\CircuitBreakerAdapter;
-use GabrielAnhaia\PhpCircuitBreaker\Exception\CircuitException;
-use Mockery\Mock;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitBreakerConfig;
+use GabrielAnhaia\PhpCircuitBreaker\CircuitState;
+use GabrielAnhaia\PhpCircuitBreaker\Event\CircuitClosedEvent;
+use GabrielAnhaia\PhpCircuitBreaker\Event\CircuitOpenedEvent;
+use GabrielAnhaia\PhpCircuitBreaker\Event\EventDispatcherInterface;
+use GabrielAnhaia\PhpCircuitBreaker\Event\FailureRecordedEvent;
+use GabrielAnhaia\PhpCircuitBreaker\Event\SuccessRecordedEvent;
+use GabrielAnhaia\PhpCircuitBreaker\Exception\OpenCircuitException;
+use GabrielAnhaia\PhpCircuitBreaker\Storage\CircuitBreakerStorageInterface;
+use Mockery;
+use Mockery\Adapter\Phpunit\MockeryPHPUnitIntegration;
+use PHPUnit\Framework\TestCase;
 
-/**
- * Class CircuitBreakerTest
- *
- * @package Tests\Unit
- *
- * @author Gabriel Anhaia <anhaia.gabriel@gmail.com>
- */
-class CircuitBreakerTest extends \Tests\TestCase
+final class CircuitBreakerTest extends TestCase
 {
-    /**
-     * Test success calling a service.
-     */
-    public function testWhenCallToAServiceWasSucceed(): void
+    use MockeryPHPUnitIntegration;
+
+    private CircuitBreakerStorageInterface|Mockery\MockInterface $storage;
+
+    protected function setUp(): void
     {
-        $serviceName = 'SERVICE';
-
-        $circuitBreakerDriverMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerDriverMock->shouldReceive('closeCircuit')
-            ->once()
-            ->with($serviceName)
-            ->andReturnTrue();
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerDriverMock);
-        $circuitBreaker->succeed($serviceName);
-        $this->assertTrue(true);
+        $this->storage = Mockery::mock(CircuitBreakerStorageInterface::class);
+        $this->storage->shouldReceive('getOverride')->andReturn(null)->byDefault();
     }
 
-    /**
-     * Test if the service can be callend (half-open, closed) or can't (open).
-     * (without exceptions.)
-     *
-     * @param CircuitStateEnum $currentState
-     * @param bool $canPass
-     *
-     * @dataProvider dataProviderTestCanPassTrue
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function testCanPassWithoutExceptions(CircuitStateEnum $currentState, bool $canPass): void
+    public function testCanPassReturnsTrueWhenClosed(): void
     {
-        $serviceName = 'SERVICE_NAME_TEST';
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $cb = new CircuitBreaker($this->storage);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn($currentState);
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock);
-        $result = $circuitBreaker->canPass($serviceName);
-
-        $this->assertEquals($canPass, $result);
+        $this->assertTrue($cb->canPass('svc'));
     }
 
-    /**
-     * Data provider for the test can pass.
-     */
-    public function dataProviderTestCanPassTrue()
+    public function testCanPassReturnsTrueWhenHalfOpen(): void
     {
-        return [
-            [
-                'state' => CircuitStateEnum::CLOSED,
-                'canPass' => true
-            ],
-            [
-                'state' => CircuitStateEnum::HALF_OPEN,
-                'canPass' => true
-            ],
-            [
-                'state' => CircuitStateEnum::OPEN,
-                'canPass' => false
-            ]
-        ];
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+        $cb = new CircuitBreaker($this->storage);
+
+        $this->assertTrue($cb->canPass('svc'));
     }
 
-    /**
-     * Test if the service can be callend (half-open, closed) or can't (open).
-     * (WITH EXCEPTION.)
-     *
-     * @dataProvider dataProviderTestCanPassTrue
-     *
-     * @return void
-     * @throws \Exception
-     */
-    public function testCantPassWithExceptions(): void
+    public function testCanPassReturnsFalseWhenOpen(): void
     {
-        $this->expectException(CircuitException::class);
-        $this->expectExceptionMessage('The circuit is open.');
-        $serviceName = 'SERVICE_NAME_TEST';
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::OPEN);
+        $cb = new CircuitBreaker($this->storage);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(CircuitStateEnum::OPEN);
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['exceptions_on' => true]);
-        $circuitBreaker->canPass($serviceName);
+        $this->assertFalse($cb->canPass('svc'));
     }
 
-    /**
-     * Test when incrementing the total of failures AND the circuit is not half-open
-     *      AND the total of failures is less than the limit.
-     */
-    public function testServiceFailureWhenTheCircuitIsNotHalfOpenAndTotalFailuresIsLessThanTheLimit(): void
+    public function testCanPassThrowsWhenOpenAndExceptionsEnabled(): void
     {
-        $serviceName = 'SERVICE_NAME_TEST';
-        $timeWindow = 123;
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::OPEN);
+        $config = new CircuitBreakerConfig(exceptionsEnabled: true);
+        $cb = new CircuitBreaker($this->storage, $config);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-
-        $circuitBreakerAdapterMock->shouldReceive('addFailure')
-            ->once()
-            ->with($serviceName, $timeWindow);
-
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(CircuitStateEnum::OPEN);
-
-        $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(0);
-
-        $circuitBreakerAdapterMock->shouldNotReceive('openCircuit');
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $circuitBreaker->failed($serviceName);
-        $this->assertTrue(true);
+        $this->expectException(OpenCircuitException::class);
+        $cb->canPass('svc');
     }
 
-    /**
-     * Test when incrementing the total of failures AND the circuit is Half-open.
-     */
-    public function testServiceFailureWhenTheCircuitIsHalfOpen(): void
+    public function testRecordFailureBelowThresholdDoesNotOpenCircuit(): void
     {
-        $serviceName = 'SERVICE_NAME_TEST';
-        $timeWindow = 123;
+        $config = new CircuitBreakerConfig(failureThreshold: 3);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerAdapterMock->shouldReceive('addFailure')
-            ->once()
-            ->with($serviceName, $timeWindow);
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordFailure')->once();
+        $this->storage->shouldReceive('getFailureCount')->andReturn(1);
 
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(CircuitStateEnum::HALF_OPEN);
-
-        $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(0);
-
-        $defaultSettingTimeOutOpen = 30;
-        $defaultSettingTimeOutHalfOpen = 20;
-
-        $circuitBreakerAdapterMock->shouldReceive('openCircuit')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen);
-
-        $circuitBreakerAdapterMock->shouldReceive('setCircuitHalfOpen')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen + $defaultSettingTimeOutHalfOpen);
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $circuitBreaker->failed($serviceName);
-        $this->assertTrue(true);
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->recordFailure('svc');
     }
 
-    /**
-     * Test when increasing the total of failures for a service AND the circuit is closed, however
-     * the total of failures reaches its limit.
-     */
-    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimit(): void
+    public function testRecordFailureAtThresholdOpensCircuit(): void
     {
-        $serviceName = 'SERVICE_NAME_TEST';
-        $timeWindow = 123;
+        $config = new CircuitBreakerConfig(failureThreshold: 3, openTimeout: 30);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerAdapterMock->shouldReceive('addFailure')
-            ->once()
-            ->with($serviceName, $timeWindow);
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordFailure')->once();
+        $this->storage->shouldReceive('getFailureCount')->andReturn(3);
+        $this->storage->shouldReceive('setOpen')->with('svc', 30)->once();
 
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(CircuitStateEnum::CLOSED);
-
-        $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(6);
-
-        $defaultSettingTimeOutOpen = 30;
-        $defaultSettingTimeOutHalfOpen = 20;
-
-        $circuitBreakerAdapterMock->shouldReceive('openCircuit')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen);
-
-        $circuitBreakerAdapterMock->shouldReceive('setCircuitHalfOpen')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen + $defaultSettingTimeOutHalfOpen);
-
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow]);
-        $circuitBreaker->failed($serviceName);
-        $this->assertTrue(true);
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->recordFailure('svc');
     }
 
-    /**
-     * Test when increasing the total of failures for a service AND the circuit is closed, however
-     * the total of failures reaches its limit and there is an {@see Alert} object to emmit a message.
-     */
-    public function testServiceFailureWhenTheCircuitIsClosedButTheNumberOfFailuresIsHigherThanTheLimitAndEmmitAMessage(): void
+    public function testRecordFailureInHalfOpenImmediatelyOpens(): void
     {
-        $serviceName = 'SERVICE_NAME_TEST';
-        $timeWindow = 123;
+        $config = new CircuitBreakerConfig(openTimeout: 30);
 
-        $circuitBreakerAdapterMock = \Mockery::mock(CircuitBreakerAdapter::class);
-        $circuitBreakerAdapterMock->shouldReceive('addFailure')
-            ->once()
-            ->with($serviceName, $timeWindow);
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+        $this->storage->shouldReceive('recordFailure')->once();
+        $this->storage->shouldReceive('setOpen')->with('svc', 30)->once();
 
-        $circuitBreakerAdapterMock->shouldReceive('getState')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(CircuitStateEnum::CLOSED);
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->recordFailure('svc');
+    }
 
-        $circuitBreakerAdapterMock->shouldReceive('getTotalFailures')
-            ->once()
-            ->with($serviceName)
-            ->andReturn(6);
+    public function testRecordSuccessInHalfOpenWithSufficientThresholdCloses(): void
+    {
+        $config = new CircuitBreakerConfig(successThreshold: 2);
 
-        $defaultSettingTimeOutOpen = 30;
-        $defaultSettingTimeOutHalfOpen = 20;
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+        $this->storage->shouldReceive('recordSuccess')->once();
+        $this->storage->shouldReceive('getSuccessCount')->andReturn(2);
+        $this->storage->shouldReceive('setClosed')->with('svc')->once();
 
-        $circuitBreakerAdapterMock->shouldReceive('openCircuit')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen);
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->recordSuccess('svc');
+    }
 
-        $circuitBreakerAdapterMock->shouldReceive('setCircuitHalfOpen')
-            ->once()
-            ->with($serviceName, $defaultSettingTimeOutOpen + $defaultSettingTimeOutHalfOpen);
+    public function testRecordSuccessInHalfOpenBelowThresholdDoesNotClose(): void
+    {
+        $config = new CircuitBreakerConfig(successThreshold: 3);
 
-        $alertWrapper = \Mockery::mock(Alert::class);
-        $alertWrapper->shouldReceive('emmitOpenCircuit')
-            ->once()
-            ->with($serviceName);
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+        $this->storage->shouldReceive('recordSuccess')->once();
+        $this->storage->shouldReceive('getSuccessCount')->andReturn(1);
+        $this->storage->shouldNotReceive('setClosed');
 
-        $circuitBreaker = new CircuitBreaker($circuitBreakerAdapterMock, ['time_window' => $timeWindow], $alertWrapper);
-        $circuitBreaker->failed($serviceName);
-        $this->assertTrue(true);
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->recordSuccess('svc');
+    }
+
+    public function testRecordSuccessInClosedResetsCounts(): void
+    {
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordSuccess')->once();
+        $this->storage->shouldReceive('setClosed')->with('svc')->once();
+
+        $cb = new CircuitBreaker($this->storage);
+        $cb->recordSuccess('svc');
+    }
+
+    public function testGetStateReturnsOverrideWhenSet(): void
+    {
+        $this->storage->shouldReceive('getOverride')
+            ->with('svc')
+            ->andReturn(CircuitState::OPEN);
+
+        $cb = new CircuitBreaker($this->storage);
+
+        $this->assertSame(CircuitState::OPEN, $cb->getState('svc'));
+    }
+
+    public function testGetStateReturnsStorageStateWhenNoOverride(): void
+    {
+        $this->storage->shouldReceive('getOverride')->with('svc')->andReturn(null);
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+
+        $cb = new CircuitBreaker($this->storage);
+
+        $this->assertSame(CircuitState::HALF_OPEN, $cb->getState('svc'));
+    }
+
+    public function testForceStateSetsOverride(): void
+    {
+        $this->storage->shouldReceive('setOverride')
+            ->with('svc', CircuitState::OPEN, 60)
+            ->once();
+
+        $cb = new CircuitBreaker($this->storage);
+        $cb->forceState('svc', CircuitState::OPEN, 60);
+    }
+
+    public function testClearOverrideDelegates(): void
+    {
+        $this->storage->shouldReceive('clearOverride')
+            ->with('svc')
+            ->once();
+
+        $cb = new CircuitBreaker($this->storage);
+        $cb->clearOverride('svc');
+    }
+
+    public function testRecordFailureDispatchesEvents(): void
+    {
+        $config = new CircuitBreakerConfig(failureThreshold: 1, openTimeout: 30);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordFailure');
+        $this->storage->shouldReceive('getFailureCount')->andReturn(1);
+        $this->storage->shouldReceive('setOpen');
+
+        $dispatcher->shouldReceive('dispatch')
+            ->with(Mockery::type(FailureRecordedEvent::class))
+            ->once();
+        $dispatcher->shouldReceive('dispatch')
+            ->with(Mockery::type(CircuitOpenedEvent::class))
+            ->once();
+
+        $cb = new CircuitBreaker($this->storage, $config, $dispatcher);
+        $cb->recordFailure('svc');
+    }
+
+    public function testRecordSuccessDispatchesEventsOnClose(): void
+    {
+        $config = new CircuitBreakerConfig(successThreshold: 1);
+        $dispatcher = Mockery::mock(EventDispatcherInterface::class);
+
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::HALF_OPEN);
+        $this->storage->shouldReceive('recordSuccess');
+        $this->storage->shouldReceive('getSuccessCount')->andReturn(1);
+        $this->storage->shouldReceive('setClosed');
+
+        $dispatcher->shouldReceive('dispatch')
+            ->with(Mockery::type(SuccessRecordedEvent::class))
+            ->once();
+        $dispatcher->shouldReceive('dispatch')
+            ->with(Mockery::type(CircuitClosedEvent::class))
+            ->once();
+
+        $cb = new CircuitBreaker($this->storage, $config, $dispatcher);
+        $cb->recordSuccess('svc');
+    }
+
+    public function testDeprecatedFailedCallsRecordFailure(): void
+    {
+        $config = new CircuitBreakerConfig(failureThreshold: 100);
+
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordFailure')->once();
+        $this->storage->shouldReceive('getFailureCount')->andReturn(1);
+
+        $cb = new CircuitBreaker($this->storage, $config);
+        $cb->failed('svc');
+    }
+
+    public function testDeprecatedSucceedCallsRecordSuccess(): void
+    {
+        $this->storage->shouldReceive('getState')->andReturn(CircuitState::CLOSED);
+        $this->storage->shouldReceive('recordSuccess')->once();
+        $this->storage->shouldReceive('setClosed')->once();
+
+        $cb = new CircuitBreaker($this->storage);
+        $cb->succeed('svc');
     }
 }
