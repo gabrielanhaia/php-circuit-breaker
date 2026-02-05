@@ -36,7 +36,7 @@ jobs:
           coverage: xdebug
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer update --no-interaction --prefer-dist --no-progress
 
       - name: Run unit tests
         run: vendor/bin/phpunit --testsuite Unit --coverage-clover coverage.xml
@@ -70,7 +70,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer update --no-interaction --prefer-dist --no-progress
 
       - name: Run PHPStan
         run: vendor/bin/phpstan analyse
@@ -90,7 +90,7 @@ jobs:
           coverage: none
 
       - name: Install dependencies
-        run: composer install --no-interaction --prefer-dist --no-progress
+        run: composer update --no-interaction --prefer-dist --no-progress
 
       - name: Check code style
         run: vendor/bin/php-cs-fixer fix --dry-run --diff
